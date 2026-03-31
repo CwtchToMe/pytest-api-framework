@@ -1,0 +1,93 @@
+name: Run Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11']
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Create reports directory
+      run: mkdir -p reports/coverage reports/allure_results
+    
+    - name: Run API tests with coverage
+      run: |
+        pytest test_cases/api/ \
+               --cov=api \
+               --cov=common \
+               --cov=config \
+               --cov-report=xml:reports/coverage/coverage.xml \
+               --cov-report=term-missing \
+               --cov-report=html:reports/coverage/html \
+               --cov-fail-under=50 \
+               --alluredir=reports/allure_results \
+               -v
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./reports/coverage/coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+    
+    - name: Upload Allure results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: allure-results-${{ matrix.python-version }}
+        path: reports/allure_results
+    
+    - name: Upload coverage reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: coverage-report-${{ matrix.python-version }}
+        path: reports/coverage/html
+    
+    - name: Install Allure command line
+      if: matrix.python-version == '3.9'
+      run: |
+        sudo apt-add-repository ppa:qameta/allure
+        sudo apt-get update
+        sudo apt-get install allure
+    
+    - name: Generate Allure report
+      if: matrix.python-version == '3.9'
+      run: |
+        allure generate reports/allure_results -o reports/allure-report --clean
+    
+    - name: Deploy Allure report to GitHub Pages
+      if: matrix.python-version == '3.9' && github.ref == 'refs/heads/main'
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./reports/allure-report

@@ -1,0 +1,153 @@
+# 框架配置测试数据
+# 用于测试框架组件的数据
+
+# 熔断器测试数据
+circuit_breaker:
+  default:
+    failure_threshold: 5
+    timeout: 60
+  
+  test_scenarios:
+    - name: "normal_operation"
+      description: "正常操作，不触发熔断"
+      failures: 0
+      expected_state: "CLOSED"
+    
+    - name: "trigger_open"
+      description: "达到失败阈值，触发熔断"
+      failures: 5
+      expected_state: "OPEN"
+    
+    - name: "half_open_recovery"
+      description: "超时后尝试恢复"
+      failures: 5
+      wait_time: 61
+      expected_state: "HALF_OPEN"
+    
+    - name: "full_recovery"
+      description: "成功后完全恢复"
+      failures: 5
+      wait_time: 61
+      success: true
+      expected_state: "CLOSED"
+
+# 限流器测试数据
+rate_limiter:
+  sliding_window:
+    max_calls: 10
+    period: 60
+  
+  token_bucket:
+    capacity: 10
+    refill_rate: 1
+  
+  leaky_bucket:
+    capacity: 10
+    leak_rate: 1
+  
+  test_scenarios:
+    - name: "under_limit"
+      description: "请求在限制内"
+      requests: 5
+      expected_allowed: 5
+    
+    - name: "at_limit"
+      description: "请求达到限制"
+      requests: 10
+      expected_allowed: 10
+    
+    - name: "over_limit"
+      description: "请求超过限制"
+      requests: 15
+      expected_allowed: 10
+
+# 插件系统测试数据
+plugins:
+  built_in:
+    - name: "logging"
+      version: "1.0.0"
+      description: "记录请求和测试日志"
+    - name: "metrics"
+      version: "1.0.0"
+      description: "收集性能和测试指标"
+    - name: "cache"
+      version: "1.0.0"
+      description: "缓存GET请求"
+  
+  hooks:
+    - "before_request"
+    - "after_request"
+    - "before_test"
+    - "after_test"
+    - "on_test_failure"
+    - "on_test_success"
+
+# 安全模块测试数据
+security:
+  sensitive_fields:
+    - "password"
+    - "passwd"
+    - "pwd"
+    - "secret"
+    - "token"
+    - "apikey"
+    - "api_key"
+    - "authorization"
+    - "auth"
+    - "credential"
+    - "credit_card"
+  
+  mask_scenarios:
+    email:
+      input: "test@example.com"
+      expected_pattern: "t***t@e***.com"
+    phone:
+      input: "13812345678"
+      expected_pattern: "138****5678"
+    password:
+      input: "mypassword123"
+      expected_output: "***"
+  
+  encryption:
+    algorithm: "Fernet"
+    key_length: 44
+    test_data:
+      - "simple_password"
+      - "complex_P@ssw0rd!@#$%"
+      - "中文密码测试"
+
+# 配置验证测试数据
+config_validation:
+  valid_environments:
+    - "dev"
+    - "test"
+    - "staging"
+    - "prod"
+  
+  valid_log_levels:
+    - "DEBUG"
+    - "INFO"
+    - "WARNING"
+    - "ERROR"
+    - "CRITICAL"
+  
+  valid_browsers:
+    - "chrome"
+    - "firefox"
+    - "edge"
+    - "safari"
+
+# 测试数据生成配置
+test_data_generator:
+  user:
+    username_prefix: "test_user_"
+    email_domain: "test.example.com"
+    password_length: 12
+  
+  repository:
+    name_prefix: "test-repo-"
+    description_length: 100
+  
+  issue:
+    title_prefix: "Test Issue "
+    body_length: 500

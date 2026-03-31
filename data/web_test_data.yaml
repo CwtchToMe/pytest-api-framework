@@ -1,0 +1,178 @@
+# GitHub Web UI 测试数据
+# 用于 Web UI 测试的数据驱动
+
+# 登录页面测试数据
+login:
+  valid:
+    - username: "testuser"
+      password: "testpassword"
+      description: "正常登录"
+  
+  invalid:
+    - username: "wronguser"
+      password: "wrongpassword"
+      expected_error: "Incorrect username or password."
+      description: "错误的用户名密码"
+    - username: ""
+      password: "testpassword"
+      expected_error: "Username or password is required"
+      description: "空用户名"
+    - username: "testuser"
+      password: ""
+      expected_error: "Username or password is required"
+      description: "空密码"
+    - username: ""
+      password: ""
+      expected_error: "Username or password is required"
+      description: "空用户名和密码"
+
+# 登录页面元素定位
+login_page:
+  elements:
+    username_input:
+      by: "id"
+      value: "login_field"
+    password_input:
+      by: "id"
+      value: "password"
+    login_button:
+      by: "name"
+      value: "commit"
+    error_message:
+      by: "css selector"
+      value: ".flash-error"
+    forgot_password_link:
+      by: "link text"
+      value: "Forgot password?"
+
+# 首页测试数据
+home:
+  navigation:
+    - name: "Pull requests"
+      url_contains: "pulls"
+    - name: "Issues"
+      url_contains: "issues"
+    - name: "Marketplace"
+      url_contains: "marketplace"
+    - name: "Explore"
+      url_contains: "explore"
+  
+  search:
+    valid:
+      - keyword: "pytest"
+        expected_min_results: 1
+      - keyword: "django"
+        expected_min_results: 1
+      - keyword: "python automation"
+        expected_min_results: 1
+    invalid:
+      - keyword: "nonexistent-repo-xyz-12345"
+        expected_results: 0
+
+# 首页元素定位
+home_page:
+  elements:
+    logo:
+      by: "css selector"
+      value: ".octicon-mark-github"
+    search_input:
+      by: "name"
+      value: "q"
+    user_avatar:
+      by: "css selector"
+      value: ".avatar"
+    notification_icon:
+      by: "css selector"
+      value: ".notification-indicator"
+    create_repo_button:
+      by: "css selector"
+      value: "[href='/new']"
+  
+  navigation:
+    pull_requests:
+      by: "link text"
+      value: "Pull requests"
+    issues:
+      by: "link text"
+      value: "Issues"
+    marketplace:
+      by: "link text"
+      value: "Marketplace"
+    explore:
+      by: "link text"
+      value: "Explore"
+
+# 仓库页面测试数据
+repository:
+  create:
+    valid:
+      - name: "test-repo-automation"
+        description: "Test repository created by automation"
+        visibility: "public"
+      - name: "private-test-repo"
+        description: "Private test repository"
+        visibility: "private"
+  
+  elements:
+    repo_name_input:
+      by: "id"
+      value: "repository_name"
+    description_input:
+      by: "id"
+      value: "repository_description"
+    create_button:
+      by: "css selector"
+      value: "button[type='submit']"
+    public_radio:
+      by: "id"
+      value: "repository_visibility_public"
+    private_radio:
+      by: "id"
+      value: "repository_visibility_private"
+
+# 用户操作测试数据
+user_operations:
+  profile:
+    expected_fields:
+      - "avatar"
+      - "username"
+      - "bio"
+      - "location"
+      - "company"
+  
+  settings:
+    navigation_items:
+      - "Profile"
+      - "Account"
+      - "Security"
+      - "Emails"
+      - "Notifications"
+
+# 通用元素定位
+common:
+  elements:
+    loading_spinner:
+      by: "css selector"
+      value: ".spinner"
+    toast_message:
+      by: "css selector"
+      value: ".toast"
+    modal_close:
+      by: "css selector"
+      value: ".modal-close"
+    dropdown_menu:
+      by: "css selector"
+      value: ".dropdown-menu"
+
+# 等待超时配置
+timeouts:
+  implicit: 10
+  explicit: 20
+  page_load: 30
+  script: 30
+
+# 截图配置
+screenshot:
+  on_failure: true
+  on_success: false
+  directory: "reports/screenshots"

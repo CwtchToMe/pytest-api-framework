@@ -1,0 +1,123 @@
+# GitHub API 测试数据
+# 用于 API 测试的数据驱动
+
+# 用户相关测试数据
+users:
+  valid:
+    - username: "octocat"
+      expected_id: 583231
+      expected_type: "User"
+      expected_company: "GitHub"
+    - username: "torvalds"
+      expected_type: "User"
+    - username: "defunkt"
+      expected_type: "User"
+  
+  invalid:
+    - username: "nonexistent-user-xyz-12345"
+      expected_status: 404
+    - username: ""
+      expected_status: 404
+
+# 认证用户测试数据
+authenticated_user:
+  valid:
+    login: "testuser"
+    expected_fields:
+      - "login"
+      - "id"
+      - "avatar_url"
+      - "html_url"
+
+# 仓库相关测试数据
+repositories:
+  valid:
+    - owner: "octocat"
+      repo: "Hello-World"
+      expected_private: false
+      expected_fork: false
+    - owner: "django"
+      repo: "django"
+      expected_language: "Python"
+    - owner: "python"
+      repo: "cpython"
+      expected_language: "Python"
+  
+  invalid:
+    - owner: "nonexistent-owner-xyz"
+      repo: "nonexistent-repo-xyz"
+      expected_status: 404
+    - owner: "octocat"
+      repo: "NonExistentRepo"
+      expected_status: 404
+
+# Issue 相关测试数据
+issues:
+  create:
+    valid:
+      - title: "Test Issue from Automation"
+        body: "This is a test issue created by automation framework"
+        labels: ["bug", "test"]
+      - title: "Feature Request"
+        body: "Please add this feature"
+        labels: ["enhancement"]
+      - title: "Documentation Update"
+        body: "Update the documentation"
+        labels: ["documentation"]
+  
+  filter:
+    states:
+      - "open"
+      - "closed"
+      - "all"
+
+# 搜索相关测试数据
+search:
+  repositories:
+    valid:
+      - query: "python"
+        expected_min_count: 1000
+        sort: "stars"
+      - query: "django"
+        expected_min_count: 100
+        sort: "stars"
+      - query: "pytest automation"
+        expected_min_count: 10
+        sort: "updated"
+    
+    empty:
+      - query: "nonexistent-repo-xyz-12345-abcde"
+        expected_count: 0
+
+# 频率限制测试数据
+rate_limit:
+  core:
+    limit: 5000
+    min_remaining: 0
+  search:
+    limit: 30
+    min_remaining: 0
+
+# 错误响应测试数据
+errors:
+  not_found:
+    status: 404
+    message: "Not Found"
+  forbidden:
+    status: 403
+    message: "API rate limit exceeded"
+  unauthorized:
+    status: 401
+    message: "Bad credentials"
+  server_error:
+    status: 500
+    message: "Internal Server Error"
+
+# 性能测试数据
+performance:
+  response_time:
+    max_avg_time: 1.0
+    iterations: 5
+  concurrent:
+    threads: 5
+    iterations: 10
