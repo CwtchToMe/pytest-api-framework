@@ -11,7 +11,7 @@ GitHub API 封装类
 特性：
 - 自动添加认证 token
 - 处理 GitHub API 的频率限制
-- 集成熔断器和限流器
+- 通过插件系统集成熔断器和限流器（核心插件，强制启用）
 """
 import logging
 from typing import Dict, Any, Optional, List
@@ -31,16 +31,8 @@ class GitHubApi(BaseApi):
         Args:
             token: GitHub Personal Access Token（可选，如果不提供则从配置读取）
         """
-        super().__init__(
-            base_url=config.GITHUB_API_URL,
-            enable_circuit_breaker=config.ENABLE_CIRCUIT_BREAKER,
-            enable_rate_limiter=config.ENABLE_RATE_LIMITER,
-            enable_plugins=config.ENABLE_PLUGINS
-        )
+        super().__init__(base_url=config.GITHUB_API_URL)
         self.token = token or config.GITHUB_TOKEN
-        self.enable_circuit_breaker = config.ENABLE_CIRCUIT_BREAKER
-        self.enable_rate_limiter = config.ENABLE_RATE_LIMITER
-        self.enable_plugins = config.ENABLE_PLUGINS
         
         if not self.token:
             logger.warning("GitHub Token 未设置，某些 API 可能无法访问")

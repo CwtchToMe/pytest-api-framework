@@ -118,6 +118,32 @@ class DataHelper:
         return cls._data_cache['framework']
     
     @classmethod
+    def load_boundary_data(cls) -> Dict[str, Any]:
+        """
+        加载边界值测试数据
+        
+        Returns:
+            Dict: 边界值测试数据
+        """
+        if 'boundary' not in cls._data_cache:
+            file_path = os.path.join(cls.get_data_dir(), 'boundary_test_data.yaml')
+            cls._data_cache['boundary'] = YamlUtil.load_yaml(file_path)
+        return cls._data_cache['boundary']
+    
+    @classmethod
+    def load_invalid_data(cls) -> Dict[str, Any]:
+        """
+        加载异常测试数据
+        
+        Returns:
+            Dict: 异常测试数据
+        """
+        if 'invalid' not in cls._data_cache:
+            file_path = os.path.join(cls.get_data_dir(), 'invalid_test_data.yaml')
+            cls._data_cache['invalid'] = YamlUtil.load_yaml(file_path)
+        return cls._data_cache['invalid']
+    
+    @classmethod
     def get_api_users(cls) -> Dict[str, Any]:
         """获取 API 用户测试数据"""
         data = cls.load_api_data()

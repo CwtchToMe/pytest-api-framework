@@ -48,6 +48,7 @@ coverage.xml
 # Allure
 reports/
 allure-results/
+allure-report/
 
 # IDEs
 .idea/
@@ -75,3 +76,6 @@ env/
 *.tmp
 *.bak
 .temp/
+
+# Local scripts
+push.bat

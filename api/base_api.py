@@ -5,6 +5,11 @@ API 基础类 - 类似 Page Object 模式的 API 封装
 1. 所有 API 调用有统一的入口
 2. 易于维护 API 端点和参数
 3. 便于添加通用的错误处理和日志记录
+
+特性：
+- 通过插件系统集成熔断器和限流器（核心插件，强制启用）
+- 统一的请求/响应日志记录
+- 支持 allure 报告
 """
 import logging
 import allure
@@ -22,9 +27,7 @@ class BaseApi:
         self,
         base_url: str,
         timeout: int = 30,
-        enable_circuit_breaker: bool = False,
-        enable_rate_limiter: bool = False,
-        enable_plugins: bool = False
+        enable_plugins: bool = True
     ):
         """
         初始化 API 基类
@@ -32,16 +35,12 @@ class BaseApi:
         Args:
             base_url: 基础 URL
             timeout: 请求超时时间
-            enable_circuit_breaker: 是否启用熔断器
-            enable_rate_limiter: 是否启用限流器
-            enable_plugins: 是否启用插件系统
+            enable_plugins: 是否启用插件系统（核心插件始终启用）
         """
         self.base_url = base_url
         self.timeout = timeout
         self.requests = BaseRequests(
             base_url=base_url,
-            enable_circuit_breaker=enable_circuit_breaker,
-            enable_rate_limiter=enable_rate_limiter,
             enable_plugins=enable_plugins
         )
     
@@ -55,7 +54,6 @@ class BaseApi:
         """记录响应信息"""
         logger.info(f"Response Status: {response.status_code}")
         
-        # 安全地记录响应内容
         try:
             if hasattr(response, 'text'):
                 text = response.text

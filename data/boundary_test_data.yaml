@@ -1,0 +1,92 @@
+# 边界值测试数据
+# 用于测试各种边界条件
+
+# 用户名边界值（GitHub 用户名限制：1-39 字符）
+username:
+  boundaries:
+    - value: ""
+      length: 0
+      expected_valid: false
+      description: "空字符串"
+      
+    - value: "a"
+      length: 1
+      expected_valid: true
+      description: "最小长度1字符"
+      
+    - value: "ab"
+      length: 2
+      expected_valid: true
+      description: "2字符"
+      
+    - value: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      length: 39
+      expected_valid: true
+      description: "最大长度39字符"
+      
+    - value: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      length: 40
+      expected_valid: false
+      description: "超出最大长度40字符"
+      
+    - value: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      length: 100
+      expected_valid: false
+      description: "远超最大长度100字符"
+
+# 星标数边界值
+stargazers:
+  boundaries:
+    - value: 0
+      expected_valid: true
+      description: "最小值0"
+      
+    - value: 1
+      expected_valid: true
+      description: "最小正数1"
+      
+    - value: 100000
+      expected_valid: true
+      description: "大数值100000"
+      
+    - value: -1
+      expected_valid: false
+      description: "负数（无效）"
+
+# Issue 标题边界值
+issue_title:
+  boundaries:
+    - value: ""
+      length: 0
+      expected_valid: false
+      description: "空标题"
+      
+    - value: "a"
+      length: 1
+      expected_valid: true
+      description: "1字符标题"
+      
+    - value: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      length: 256
+      expected_valid: true
+      description: "256字符标题"
+      
+    - value: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      length: 257
+      expected_valid: false
+      description: "超长标题257字符"
+
+# 频率限制边界值
+rate_limit:
+  boundaries:
+    - remaining: 5000
+      expected_valid: true
+      description: "最大剩余次数"
+      
+    - remaining: 0
+      expected_valid: true
+      description: "最小剩余次数（达到限制）"
+      
+    - remaining: -1
+      expected_valid: false
+      description: "负数（无效）"

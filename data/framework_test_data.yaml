@@ -151,3 +151,33 @@ test_data_generator:
   issue:
     title_prefix: "Test Issue "
     body_length: 500
+
+# 压力测试和负载测试数据
+stress_test:
+  high_concurrency:
+    concurrent_requests: 100
+    expected_success_rate: 100
+  
+  sustained:
+    duration_seconds: 10
+    concurrent_threads: 10
+  
+  load_levels:
+    - concurrent_users: 10
+      description: "低负载"
+    - concurrent_users: 20
+      description: "中低负载"
+    - concurrent_users: 50
+      description: "中高负载"
+    - concurrent_users: 100
+      description: "高负载"
+  
+  performance_benchmark:
+    sample_count: 100
+    max_avg_response_time_ms: 100
+  
+  mock_response:
+    status_code: 200
+    body:
+      login: "test"
+      id: 123
