@@ -10,6 +10,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.8", "3.9", "3.10", "3.11"]
 
@@ -22,14 +23,6 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Cache pip dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -37,45 +30,19 @@ jobs:
 
       - name: Create .env file
         run: |
-          cp .env.example .env
+          cp .env.example .env || true
           echo "ENV=test" >> .env
           echo "GITHUB_API_URL=https://api.github.com" >> .env
-          echo "GITHUB_TOKEN=" >> .env
-
-      - name: Create reports directory
-        run: mkdir -p reports/coverage reports/allure_results
 
       - name: Run tests
         run: |
-          pytest test_cases/ \
-            --cov=api \
-            --cov=common \
-            --cov=config \
-            --cov-report=xml:reports/coverage/coverage.xml \
-            --cov-report=term-missing \
-            --alluredir=reports/allure_results \
-            -v \
-            --tb=short
-        continue-on-error: false
+          pytest test_cases/ -v --tb=short
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./reports/coverage/coverage.xml
-          flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: false
-
-      - name: Upload Allure results
-        uses: actions/upload-artifact@v3
+      - name: Upload test results
         if: always()
-        with:
-          name: allure-results-${{ matrix.python-version }}
-          path: reports/allure_results
-
-      - name: Upload coverage reports
         uses: actions/upload-artifact@v3
-        if: always()
         with:
-          name: coverage-report-${{ matrix.python-version }}
-          path: reports/coverage/html
+          name: test-results-${{ matrix.python-version }}
+          path: |
+            reports/
+            allure-results/
