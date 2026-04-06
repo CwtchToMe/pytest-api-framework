@@ -14,8 +14,8 @@
 
 | 测试类型 | 测试对象 | 技术栈 | 测试数量 |
 |----------|----------|--------|----------|
-| **API 测试** | GitHub REST API | Requests + Mock | 80 个 |
-| **Web UI 测试** | GitHub Web 页面 | Selenium + Mock | 16 个 |
+| **API 测试** | GitHub REST API | Requests + Mock | 77 个 |
+| **Web UI 测试** | GitHub Web 页面 | Selenium + Mock | 19 个 |
 
 **框架核心能力：**
 

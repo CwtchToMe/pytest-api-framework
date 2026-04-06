@@ -102,6 +102,10 @@ class Config:
     ENABLE_RATE_LIMITER = os.getenv("ENABLE_RATE_LIMITER", "true").lower() == "true"
     ENABLE_PLUGINS = os.getenv("ENABLE_PLUGINS", "true").lower() == "true"
     
+    # ========== Mock 配置 ==========
+    # 控制是否使用 Mock 数据（false = 真实 API 请求）
+    USE_MOCK = os.getenv("USE_MOCK", "true").lower() == "true"
+    
     # ========== UI 配置 ==========
     UI_BASE_URL = os.getenv(
         "UI_BASE_URL",
