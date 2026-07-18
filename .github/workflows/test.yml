@@ -1,30 +1,101 @@
-name: Run Tests
+# ==============================================================================
+# TakeoutSystem 自动化测试框架 —— CI/CD Pipeline
+#
+# 分层策略：
+#   1. Push → main   → 全量测试（API 真实模式 + UI，Docker 容器化环境）
+#   2. Push → develop → API Mock 测试（快速反馈，不依赖外部服务）
+#   3. Pull Request    → API Mock 测试（快速反馈）
+#   4. 每日定时        → 全量测试（API 真实模式 + UI）
+#   5. 手动触发        → 灵活选择测试范围和模式
+#
+# 环境变量（可选）：
+#   SLACK_WEBHOOK     - Slack 通知 Webhook（可选）
+# ==============================================================================
+
+name: TakeoutSystem CI/CD
 
 on:
   push:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+  schedule:
+    # 北京时间 06:00（UTC 22:00）每日构建
+    - cron: '0 22 * * *'
+  workflow_dispatch:
+    inputs:
+      test_scope:
+        description: '测试范围'
+        required: true
+        default: 'api'
+        type: choice
+        options:
+          - api        # 仅 API 测试（取决于 mock_mode 选择）
+          - ui         # 仅 UI 测试（Docker 容器化环境）
+          - full       # 全量测试（API + UI）
+      mock_mode:
+        description: 'Mock 模式'
+        required: true
+        default: 'true'
+        type: choice
+        options:
+          - 'true'     # Mock 模式（不依赖后端）
+          - 'false'    # 真实模式（需 Docker 后端）
 
 env:
+  PYTHON_VERSION: '3.11'
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  test:
+  # ============================================================================
+  # Job 1: 代码风格检查
+  # ============================================================================
+  lint:
+    name: 代码风格检查
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
-
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Setup Python ${{ env.PYTHON_VERSION }}
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install lint tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install black isort
+
+      - name: Check formatting (black)
+        run: black --check --diff .
+
+      - name: Check import order (isort)
+        run: isort --check-only --diff .
+
+  # ============================================================================
+  # Job 2: API 测试（Mock 模式 — 无需后端服务）
+  # ============================================================================
+  api-tests:
+    name: API 测试 (Mock)
+    runs-on: ubuntu-latest
+    # Push → develop / Pull Request 时运行（快速反馈）；
+    # dispatch 时仅当 mock_mode=true 且 scope 匹配时运行
+    if: |
+      (github.event_name == 'push' && github.ref_name != 'main') ||
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'workflow_dispatch' &&
+       github.event.inputs.mock_mode != 'false' &&
+       (github.event.inputs.test_scope == 'api' || github.event.inputs.test_scope == 'full'))
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
 
       - name: Install dependencies
         run: |
@@ -33,8 +104,293 @@ jobs:
 
       - name: Create .env file
         run: |
-          cp .env.example .env || true
+          cp .env.example .env
           echo "ENV=test" >> .env
+          echo "HEADLESS=true" >> .env
+          echo "USE_MOCK=true" >> .env
+          echo "LOG_LEVEL=INFO" >> .env
 
-      - name: Run tests
-        run: pytest test_cases/ -v --tb=long 2>&1
+      - name: Run API tests (Mock mode)
+        run: |
+          python -m pytest test_cases/api/ \
+            -v \
+            --tb=short \
+            --alluredir=reports/allure-results \
+            -n auto \
+            --reruns 1 \
+            -p no:warnings
+
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-api
+          path: reports/allure-results/
+          retention-days: 7
+
+      - name: Upload test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs-api
+          path: logs/
+          retention-days: 3
+
+  # ============================================================================
+  # Job 3: API 测试（真实模式 — 需要 Docker 后端服务）
+  # ============================================================================
+  api-tests-real:
+    name: API 测试 (真实模式)
+    runs-on: ubuntu-latest
+    # Push → main、定时构建、或手动触发且 mock_mode=false 时运行
+    if: |
+      (github.event_name == 'push' && github.ref_name == 'main') ||
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' &&
+       github.event.inputs.mock_mode == 'false' &&
+       (github.event.inputs.test_scope == 'api' || github.event.inputs.test_scope == 'full'))
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Create .env file
+        run: |
+          cp .env.example .env
+          echo "ENV=test" >> .env
+          echo "HEADLESS=true" >> .env
+          echo "USE_MOCK=false" >> .env
+          echo "API_TIMEOUT=60" >> .env
+          echo "LOG_LEVEL=INFO" >> .env
+
+      - name: Start backend services with Docker Compose
+        run: |
+          docker compose -f docker-compose.ci.yml up -d mysql redis backend db-seed
+          echo "等待后端服务就绪..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8080/api/health > /dev/null 2>&1; then
+              echo "✅ 后端服务已就绪！"
+              break
+            fi
+            echo "等待中... ($i/30)"
+            sleep 5
+          done
+
+      - name: Run API tests (Real mode)
+        run: |
+          python -m pytest test_cases/api/ \
+            -v \
+            --tb=short \
+            --alluredir=reports/allure-results \
+            -n auto \
+            --reruns 1 \
+            -p no:warnings
+
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-api-real
+          path: reports/allure-results/
+          retention-days: 7
+
+      - name: Upload test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs-api-real
+          path: logs/
+          retention-days: 3
+
+      - name: Clean up Docker Compose
+        if: always()
+        run: docker compose -f docker-compose.ci.yml down -v
+
+  # ============================================================================
+  # Job 4: UI 测试（Docker 容器化环境 — 真实模式）
+  # ============================================================================
+  ui-tests:
+    name: UI 测试
+    runs-on: ubuntu-latest
+    # Push → main、定时构建或手动触发且选择 ui/full 时运行
+    if: |
+      (github.event_name == 'push' && github.ref_name == 'main') ||
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' &&
+       (github.event.inputs.test_scope == 'ui' || github.event.inputs.test_scope == 'full'))
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+          google-chrome --version
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Create .env file
+        run: |
+          cp .env.example .env
+          echo "ENV=test" >> .env
+          echo "HEADLESS=true" >> .env
+          echo "BROWSER=chrome" >> .env
+          echo "USE_MOCK=false" >> .env
+          echo "H5_BASE_URL=http://localhost:3001" >> .env
+          echo "MERCHANT_BASE_URL=http://localhost:3002" >> .env
+          echo "ADMIN_BASE_URL=http://localhost:3003" >> .env
+          echo "TAKEOUT_API_URL=http://localhost:8080" >> .env
+
+      - name: Start all services with Docker Compose
+        run: |
+          docker compose -f docker-compose.ci.yml up -d
+          echo "等待后端服务就绪..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8080/api/health > /dev/null 2>&1; then
+              echo "✅ 后端服务已就绪！"
+              break
+            fi
+            echo "等待中... ($i/30)"
+            sleep 5
+          done
+          # 给前端容器一点额外启动时间
+          sleep 10
+
+      - name: Check UI services availability
+        run: |
+          echo "Checking service availability..."
+          for url in "http://localhost:3001" "http://localhost:3002" "http://localhost:3003"; do
+            echo "Checking $url..."
+            curl -s -o /dev/null -w "%{http_code}" "$url" 2>/dev/null || echo "unreachable"
+            echo ""
+          done
+
+      - name: Run UI tests
+        run: |
+          python -m pytest test_cases/web/ \
+            -v \
+            --tb=short \
+            --alluredir=reports/allure-results \
+            --reruns 2
+        continue-on-error: true
+
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-ui
+          path: reports/allure-results/
+          retention-days: 7
+
+      - name: Upload screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-test-screenshots
+          path: reports/screenshots/
+          retention-days: 7
+
+      - name: Upload test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs-ui
+          path: logs/
+          retention-days: 3
+
+      - name: Clean up Docker Compose
+        if: always()
+        run: docker compose -f docker-compose.ci.yml down -v
+
+  # ============================================================================
+  # Job 5: Allure 报告生成与发布
+  # ============================================================================
+  allure-report:
+    name: Allure 报告
+    needs: [api-tests, api-tests-real, ui-tests]
+    # 只要任一测试 job 运行过就生成报告
+    if: always() && (needs.api-tests.result != 'skipped' || needs.api-tests-real.result != 'skipped' || needs.ui-tests.result != 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all Allure results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: allure-results-*
+          path: all-artifacts/
+          merge-multiple: true
+
+      - name: Install Allure CLI
+        run: |
+          # Allure CLI 官方安装方式
+          curl -sL https://github.com/allure-framework/allure2/releases/latest/download/allure-2.32.0.tgz \
+            -o allure.tgz
+          tar -xzf allure.tgz -C /opt/
+          sudo ln -s /opt/allure-2.32.0/bin/allure /usr/local/bin/allure
+          allure --version
+
+      - name: Generate Allure report
+        run: |
+          allure generate -c all-artifacts -o allure-report
+
+      - name: Upload Allure report as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report
+          path: allure-report/
+          retention-days: 30
+
+      - name: Deploy to GitHub Pages
+        if: github.ref == 'refs/heads/main' && success()
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./allure-report
+          destination_dir: allure-report
+          keep_files: false
+
+  # ============================================================================
+  # Job 6: 通知（测试失败时）
+  # ============================================================================
+  notify:
+    name: 发送通知
+    needs: [api-tests, api-tests-real, ui-tests]
+    if: failure() && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check workflow result
+        run: |
+          echo "❌ CI 流水线检测到失败，请查看详情："
+          echo "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+      - name: Send Slack notification（需配置 SLACK_WEBHOOK Secret）
+        run: |
+          if [ -n "$SLACK_WEBHOOK" ]; then
+            curl -s -X POST -H 'Content-type: application/json' \
+              --data '{"text":"❌ TakeoutSystem 测试失败\n🔗 <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|查看详情>\n📦 ${{ github.repository }}@${{ github.ref_name }}"}' \
+              "$SLACK_WEBHOOK"
+          fi
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK || '' }}

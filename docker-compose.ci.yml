@@ -1,0 +1,128 @@
+# ==============================================================================
+# TakeoutSystem CI 环境 Docker Compose
+#
+# 用途：在 CI/CD 中拉起完整的 TakeoutSystem 环境，用于 UI 和真实模式测试。
+# 镜像已推送到 ghcr.io/cwtochtome/，CI 自动拉取。
+#
+# 使用方式：
+#   # 启动所有服务
+#   docker compose -f docker-compose.ci.yml up -d
+#
+#   # 运行测试
+#   USE_MOCK=false ENV=ci python -m pytest test_cases/
+#
+#   # 停止并清理
+#   docker compose -f docker-compose.ci.yml down -v
+#
+# 注意事项：
+#   1. 各服务启动顺序依赖：MySQL → Redis → 后端 API → 前端应用
+# ==============================================================================
+
+services:
+  # ---- 基础设施 ----
+  mysql:
+    image: mysql:8.0
+    container_name: ci-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: takeout_root
+      MYSQL_DATABASE: takeout
+      MYSQL_USER: takeout
+      MYSQL_PASSWORD: takeout_pass
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    tmpfs: /var/lib/mysql  # 容器销毁后数据自动清除
+
+  redis:
+    image: redis:7-alpine
+    container_name: ci-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ---- 后端 API 服务 ----
+  backend:
+    image: ghcr.io/cwtochtome/takeout-backend:latest
+    container_name: ci-backend
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: ci
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/takeout?useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: takeout
+      SPRING_DATASOURCE_PASSWORD: takeout_pass
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SERVER_PORT: 8080
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ---- 初始化测试数据 ----
+  db-seed:
+    image: ghcr.io/cwtochtome/takeout-backend:latest
+    container_name: ci-db-seed
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: ci
+    command: >
+      sh -c "
+        # 设置测试用户验证码
+        redis-cli -h redis SET 'sms:code:13800000001' '123456' EX 3600 &&
+        redis-cli -h redis SET 'sms:code:13800000002' '123456' EX 3600 &&
+        redis-cli -h redis SET 'sms:code:13800000003' '123456' EX 3600 &&
+        redis-cli -h redis SET 'sms:code:13800000004' '123456' EX 3600 &&
+        echo '测试数据已初始化'
+      "
+
+  # ---- 前端应用 ----
+  h5-frontend:
+    image: ghcr.io/cwtochtome/takeout-h5:latest
+    container_name: ci-h5
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      NEXT_PUBLIC_API_URL: http://backend:8080
+    ports:
+      - "3001:3001"
+
+  merchant-frontend:
+    image: ghcr.io/cwtochtome/takeout-merchant:latest
+    container_name: ci-merchant
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      NEXT_PUBLIC_API_URL: http://backend:8080
+    ports:
+      - "3002:3002"
+
+  admin-frontend:
+    image: ghcr.io/cwtochtome/takeout-admin:latest
+    container_name: ci-admin
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      NEXT_PUBLIC_API_URL: http://backend:8080
+    ports:
+      - "3003:3003"
