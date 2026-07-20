@@ -180,9 +180,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Debug Docker environment
+        run: |
+          echo "=== Docker version ==="
+          docker version --format '{{.Server.Version}}' || echo "Docker daemon not available"
+          echo "=== Docker Compose version ==="
+          docker compose version || echo "docker compose not found"
+          docker-compose version 2>/dev/null || echo "docker-compose not found"
+          echo "=== Docker Compose config ==="
+          docker compose -f docker-compose.ci.yml config 2>&1 || echo "Config validation failed"
+
       - name: Start backend services with Docker Compose
         run: |
-          docker compose -f docker-compose.ci.yml up -d mysql redis backend db-seed
+          docker compose -f docker-compose.ci.yml up -d mysql redis backend db-seed 2>&1
           echo "等待后端服务就绪..."
           READY=false
           for i in $(seq 1 30); do
@@ -284,9 +294,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Debug Docker environment
+        run: |
+          echo "=== Docker version ==="
+          docker version --format '{{.Server.Version}}' || echo "Docker daemon not available"
+          echo "=== Docker Compose version ==="
+          docker compose version || echo "docker compose not found"
+          docker-compose version 2>/dev/null || echo "docker-compose not found"
+          echo "=== Docker Compose config ==="
+          docker compose -f docker-compose.ci.yml config 2>&1 || echo "Config validation failed"
+
       - name: Start all services with Docker Compose
         run: |
-          docker compose -f docker-compose.ci.yml up -d
+          docker compose -f docker-compose.ci.yml up -d 2>&1
           echo "等待后端服务就绪..."
           READY=false
           for i in $(seq 1 30); do
@@ -376,6 +396,7 @@ jobs:
       - name: Install Allure CLI
         run: |
           # 从 GitHub API 获取最新版本号（认证避免限流），失败则使用预设版本
+          set -o pipefail
           ALLURE_VERSION=$(curl -sL --fail \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             https://api.github.com/repos/allure-framework/allure2/releases/latest 2>/dev/null \
