@@ -416,7 +416,7 @@ jobs:
         run: |
           ALLURE_VERSION="2.44.0"
           echo "Allure 版本: $ALLURE_VERSION"
-          curl -sL "https://github.com/allure-framework/allure2/releases/download/v${ALLURE_VERSION}/allure-${ALLURE_VERSION}.tgz" \
+          curl -sL "https://github.com/allure-framework/allure2/releases/download/${ALLURE_VERSION}/allure-${ALLURE_VERSION}.tgz" \
             -o allure.tgz
           sudo tar -xzf allure.tgz -C /opt/
           sudo ln -sf /opt/allure-${ALLURE_VERSION}/bin/allure /usr/local/bin/allure
