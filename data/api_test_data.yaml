@@ -1,123 +1,248 @@
-# GitHub API 测试数据
-# 用于 API 测试的数据驱动
+# TakeoutSystem 外卖系统 API 测试数据
 
-# 用户相关测试数据
-users:
-  valid:
-    - username: "octocat"
-      expected_id: 583231
-      expected_type: "User"
-      expected_company: "GitHub"
-    - username: "torvalds"
-      expected_type: "User"
-    - username: "defunkt"
-      expected_type: "User"
-  
-  invalid:
-    - username: "nonexistent-user-xyz-12345"
-      expected_status: 404
-    - username: ""
-      expected_status: 404
+# ============================================================
+# 认证模块测试数据
+# ============================================================
+auth:
+  valid_accounts:
+    - phone: "13800000003"
+      code: "123456"
+      role: "CUSTOMER"
+      desc: "普通用户"
+    - phone: "13800000002"
+      code: "123456"
+      role: "MERCHANT"
+      desc: "商家1-辣味馆"
+    - phone: "13800000004"
+      code: "123456"
+      role: "MERCHANT"
+      desc: "商家2-快乐汉堡"
+    - phone: "13800000001"
+      code: "123456"
+      role: "ADMIN"
+      desc: "管理员"
+  invalid_accounts:
+    - phone: "13800000099"
+      code: "123456"
+      expected_status: 400
+      desc: "不存在的手机号"
+    - phone: "13800000003"
+      code: "000000"
+      expected_status: 400
+      desc: "错误验证码"
+    - phone: ""
+      code: "123456"
+      expected_status: 400
+      desc: "空手机号"
+    - phone: "1380000"
+      code: "123456"
+      expected_status: 400
+      desc: "格式错误的手机号"
 
-# 认证用户测试数据
-authenticated_user:
-  valid:
-    login: "testuser"
-    expected_fields:
-      - "login"
-      - "id"
-      - "avatar_url"
-      - "html_url"
+# ============================================================
+# 商家模块测试数据
+# ============================================================
+merchant:
+  valid_ids:
+    - id: 1
+      name: "辣味馆"
+      desc: "商家1"
+    - id: 2
+      name: "快乐汉堡"
+      desc: "商家2"
+  search_cases:
+    - keyword: "辣"
+      expected_min: 1
+      desc: "有结果搜索"
+    - keyword: "汉堡"
+      expected_min: 1
+      desc: "有结果搜索"
+    - keyword: "不存在xyz123"
+      expected: 0
+      desc: "无结果搜索"
+  nearby_cases:
+    - lat: 31.23
+      lng: 121.47
+      radius: 10000
+      desc: "上海市中心附近商家"
 
-# 仓库相关测试数据
-repositories:
-  valid:
-    - owner: "octocat"
-      repo: "Hello-World"
-      expected_private: false
-      expected_fork: false
-    - owner: "django"
-      repo: "django"
-      expected_language: "Python"
-    - owner: "python"
-      repo: "cpython"
-      expected_language: "Python"
-  
-  invalid:
-    - owner: "nonexistent-owner-xyz"
-      repo: "nonexistent-repo-xyz"
-      expected_status: 404
-    - owner: "octocat"
-      repo: "NonExistentRepo"
-      expected_status: 404
+# ============================================================
+# 商品模块测试数据
+# ============================================================
+product:
+  merchant_menu:
+    - merchant_id: 1
+      expect_has_categories: true
+      desc: "辣味馆菜单"
+    - merchant_id: 2
+      expect_has_categories: true
+      desc: "快乐汉堡菜单"
+  new_dish:
+    - name: "测试菜品"
+      price: 19.9
+      category_id: 1
+      expected_status: 200
+      desc: "正常添加"
+    - name: ""
+      price: 19.9
+      category_id: 1
+      expected_status: 400
+      desc: "菜名为空"
+    - name: "测试"
+      price: -1
+      category_id: 1
+      expected_status: 400
+      desc: "价格为负"
 
-# Issue 相关测试数据
-issues:
-  create:
-    valid:
-      - title: "Test Issue from Automation"
-        body: "This is a test issue created by automation framework"
-        labels: ["bug", "test"]
-      - title: "Feature Request"
-        body: "Please add this feature"
-        labels: ["enhancement"]
-      - title: "Documentation Update"
-        body: "Update the documentation"
-        labels: ["documentation"]
-  
-  filter:
-    states:
-      - "open"
-      - "closed"
-      - "all"
+# ============================================================
+# 购物车模块测试数据
+# ============================================================
+cart:
+  add_items:
+    - merchant_id: 1
+      dish_id: 1
+      quantity: 2
+      desc: "正常加购"
+    - merchant_id: 1
+      dish_id: 1
+      quantity: 0
+      expected_status: 400
+      desc: "数量为0"
+    - merchant_id: 1
+      dish_id: 9999
+      quantity: 1
+      expected_status: 400
+      desc: "不存在的菜品"
 
-# 搜索相关测试数据
-search:
-  repositories:
-    valid:
-      - query: "python"
-        expected_min_count: 1000
-        sort: "stars"
-      - query: "django"
-        expected_min_count: 100
-        sort: "stars"
-      - query: "pytest automation"
-        expected_min_count: 10
-        sort: "updated"
-    
-    empty:
-      - query: "nonexistent-repo-xyz-12345-abcde"
-        expected_count: 0
+# ============================================================
+# 订单模块测试数据
+# ============================================================
+order:
+  statuses:
+    pending_payment: 1
+    awaiting_merchant: 2
+    preparing: 3
+    ready: 4
+    delivering: 5
+    delivered: 6
+    completed: 7
+    cancelled: 8
+    refunding: 9
+  submit:
+    - merchant_id: 1
+      address_id: 1
+      desc: "正常下单"
+      expected: 200
+  cancel_reason: "测试取消订单"
 
-# 频率限制测试数据
-rate_limit:
-  core:
-    limit: 5000
-    min_remaining: 0
-  search:
-    limit: 30
-    min_remaining: 0
+# ============================================================
+# 支付模块测试数据
+# ============================================================
+payment:
+  methods:
+    - "mock"
+    - "wechat"
+    - "alipay"
 
-# 错误响应测试数据
-errors:
-  not_found:
-    status: 404
-    message: "Not Found"
-  forbidden:
-    status: 403
-    message: "API rate limit exceeded"
-  unauthorized:
-    status: 401
-    message: "Bad credentials"
-  server_error:
-    status: 500
-    message: "Internal Server Error"
+# ============================================================
+# 评价模块测试数据
+# ============================================================
+review:
+  valid_rating:
+    - rating: 5
+      content: "很好吃！"
+      desc: "好评"
+    - rating: 1
+      content: "不好吃"
+      desc: "差评"
+  invalid_rating:
+    - rating: 0
+      expected_status: 400
+      desc: "低于最小值"
+    - rating: 6
+      expected_status: 400
+      desc: "超过最大值"
 
-# 性能测试数据
-performance:
-  response_time:
-    max_avg_time: 1.0
-    iterations: 5
-  concurrent:
-    threads: 5
-    iterations: 10
+# ============================================================
+# 优惠券模块测试数据
+# ============================================================
+coupon:
+  test_coupon_id: 1
+
+# ============================================================
+# 收藏模块测试数据
+# ============================================================
+favorite:
+  test_merchant_ids:
+    - 1
+    - 2
+
+# ============================================================
+# 边界值测试数据
+# ============================================================
+boundary:
+  phone:
+    - value: "13800000003"
+      valid: true
+      desc: "正常11位手机号"
+    - value: "1"
+      valid: false
+      desc: "1位"
+    - value: "138000000031234567"
+      valid: false
+      desc: "超长18位"
+    - value: ""
+      valid: false
+      desc: "空字符串"
+  rating:
+    - value: 1
+      valid: true
+      desc: "最低1"
+    - value: 5
+      valid: true
+      desc: "最高5"
+    - value: 0
+      valid: false
+      desc: "低于最小值"
+    - value: 6
+      valid: false
+      desc: "超过最大值"
+  quantity:
+    - value: 1
+      valid: true
+      desc: "最小1"
+    - value: 99
+      valid: true
+      desc: "正常99"
+    - value: 0
+      valid: false
+      desc: "零数量"
+    - value: -1
+      valid: false
+      desc: "负数"
+
+# ============================================================
+# 安全测试数据
+# ============================================================
+security:
+  sql_injection:
+    - payload: "' OR '1'='1"
+      desc: "SQL注入-恒真条件"
+    - payload: "'; DROP TABLE orders; --"
+      desc: "SQL注入-删除表"
+    - payload: "' UNION SELECT * FROM users; --"
+      desc: "SQL注入-联合查询"
+  xss:
+    - payload: "<script>alert('XSS')</script>"
+      desc: "XSS脚本注入"
+    - payload: "<img src=x onerror=alert(1)>"
+      desc: "XSS图片错误"
+    - payload: "javascript:alert('XSS')"
+      desc: "XSS伪协议"
+  long_input:
+    - field: "remark"
+      length: 300
+      desc: "300字备注"
+    - field: "content"
+      length: 1000
+      desc: "1000字评价"

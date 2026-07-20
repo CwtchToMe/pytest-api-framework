@@ -1,8 +1,3 @@
 """
-核心插件 - 不可禁用
+核心插件目录 - 当前无核心插件
 """
-from .circuit_breaker import CircuitBreakerPlugin
-from .rate_limiter import RateLimiterPlugin
-
-
-__all__ = ['CircuitBreakerPlugin', 'RateLimiterPlugin']

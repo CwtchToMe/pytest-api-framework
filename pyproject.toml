@@ -1,53 +1,61 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "pytest-api-framework"
+version = "1.0.0"
+description = "TakeoutSystem 外卖系统自动化测试框架"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "QA Team"},
+]
+
+dependencies = [
+    "pytest>=7.0",
+    "requests>=2.28",
+    "selenium>=4.0",
+    "allure-pytest>=2.13",
+    "PyYAML>=6.0",
+    "python-dotenv>=1.0",
+    "Faker>=18.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black",
+    "isort",
+    "pytest-xdist",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["test_cases"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v --tb=short --strict-markers"
+addopts = "-v --tb=short --reruns 1"
+
 markers = [
-    "api: API 测试",
-    "integration: 集成测试（真实 API）",
+    "api: API 自动化测试",
+    "ui: UI 自动化测试",
     "smoke: 冒烟测试",
+    "regression: 回归测试",
+    "critical: 关键业务路径",
+    "boundary: 边界值测试",
+    "security: 安全测试",
     "performance: 性能测试",
+    "integration: 集成测试",
+    "h5: H5 端 UI 测试",
+    "merchant: 商家端测试",
+    "admin: 管理后台测试",
+    "auth: 认证模块测试",
+    "order: 订单模块测试",
+    "payment: 支付模块测试",
+    "mock: Mock 模式测试",
 ]
+
 filterwarnings = [
     "ignore::DeprecationWarning",
-]
-
-[tool.black]
-line-length = 120
-target-version = ['py38', 'py39', 'py310', 'py311']
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.git
-    | \.venv
-    | __pycache__
-    | allure-results
-    | reports
-)/
-'''
-
-[tool.isort]
-profile = "black"
-line_length = 120
-skip = [".venv", "allure-results"]
-
-[tool.mypy]
-python_version = "3.8"
-warn_return_any = true
-warn_unused_configs = true
-ignore_missing_imports = true
-exclude = ["allure-results", "reports"]
-
-[tool.coverage.run]
-source = ["api", "common", "config"]
-omit = ["*/tests/*", "*/__pycache__/*"]
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "raise NotImplementedError",
-    "if __name__ == .__main__.:",
 ]

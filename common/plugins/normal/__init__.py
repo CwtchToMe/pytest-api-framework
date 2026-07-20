@@ -1,9 +1,8 @@
 """
 普通插件 - 可禁用
 """
+
+from .allure_plugin import AllurePlugin
 from .logging_plugin import LoggingPlugin
-from .metrics_plugin import MetricsPlugin
-from .cache_plugin import CachePlugin
 
-
-__all__ = ['LoggingPlugin', 'MetricsPlugin', 'CachePlugin']
+__all__ = ["LoggingPlugin", "AllurePlugin"]

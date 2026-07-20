@@ -1,430 +1,266 @@
-# Pytest 自动化测试框架
+# pytest-api-framework — TakeoutSystem 外卖系统自动化测试框架
 
-[![Python](https://img.shields.io/badge/Python-3.8%2B-blue?logo=python)](https://www.python.org/)
-[![Pytest](https://img.shields.io/badge/Pytest-7.4-green?logo=pytest)](https://pytest.org/)
+[![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python)](https://www.python.org/)
+[![Pytest](https://img.shields.io/badge/Pytest-9.1-green?logo=pytest)](https://pytest.org/)
+[![Selenium](https://img.shields.io/badge/Selenium-4.x-brightgreen?logo=selenium)](https://selenium.dev/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-基于 GitHub 平台的 Pytest 自动化测试框架，集成熔断器、限流器、插件系统等高级特性，**同时支持 API 测试和 Web UI 测试**。
+面向 **TakeoutSystem 外卖点餐系统** 的全链路自动化测试框架，覆盖后端 REST API 与三个前端应用（H5/商家端/管理后台）。
 
-## 项目定位
+**核心特色：** Mock/真实双模式 | 插件化 HTTP 客户端 | 熔断器+限流器 | Allure 报告 | 多端 UI 覆盖 | 零 time.sleep
 
-这是一个**全栈自动化测试框架**项目，用于测试 GitHub API 接口和 Web 页面。框架采用分层架构设计，实现了数据与方法的解耦：
+## 测试覆盖
 
-**两大测试方向：**
-
-| 测试类型 | 测试对象 | 技术栈 | 测试数量 |
-|----------|----------|--------|----------|
-| **API 测试** | GitHub REST API | Requests + Mock | 77 个 |
-| **Web UI 测试** | GitHub Web 页面 | Selenium + Mock | 19 个 |
-
-**框架核心能力：**
-
-- HTTP 请求封装（带重试、熔断、限流）
-- 高级特性（熔断器、限流器、插件系统）
-- 安全模块（敏感信息过滤、数据加密）
-- Web UI 自动化（Selenium 页面对象模式）
-- 数据驱动测试（YAML 数据文件）
-- 测试报告生成（Allure）
-
-## 项目特点
-
-- **分层架构设计**：配置层、API 封装层、公共组件层、测试用例层、页面对象层、数据层
-- **数据驱动测试**：测试数据与测试代码分离，支持 YAML 数据文件
-- **"硬逻辑 + 软钩子"插件系统**：核心插件强制加载，普通插件可选加载
-- **双测试模式**：API 测试和 Web UI 测试同等重要，独立运行
-- **多环境支持**：dev/test/staging/prod 环境配置
-- **完善的日志系统**：轮转日志、敏感信息自动脱敏
-- **Allure 报告**：可视化测试报告，支持图表统计
-
-## 目录结构
-
-```
-pytest-api-framework/
-├── config/                    # 配置层
-│   ├── __init__.py
-│   └── config.py             # 多环境配置管理
-├── api/                       # API 封装层
-│   ├── __init__.py
-│   ├── base_api.py           # API 基类
-│   └── github_api.py         # GitHub API 封装
-├── common/                    # 公共组件层
-│   ├── __init__.py
-│   ├── base_requests.py      # HTTP 请求基类（核心）
-│   ├── circuit_breaker.py    # 熔断器
-│   ├── rate_limiter.py       # 限流器
-│   ├── plugin_system.py      # 插件系统入口
-│   ├── security.py           # 安全模块
-│   ├── secure_config.py      # 安全配置（加密）
-│   ├── yaml_util.py          # YAML 工具 + 数据加载器
-│   ├── data_generator.py     # Faker 数据生成器
-│   └── plugins/              # 插件系统
-│       ├── base.py           # 插件基类
-│       ├── manager.py        # 插件管理器
-│       ├── core/             # 核心插件（不可禁用）
-│       │   ├── circuit_breaker.py  # 熔断器插件
-│       │   └── rate_limiter.py     # 限流器插件
-│       └── normal/           # 普通插件（可禁用）
-│           ├── logging_plugin.py   # 日志插件
-│           ├── metrics_plugin.py   # 指标插件
-│           └── cache_plugin.py     # 缓存插件
-├── page_objects/             # 页面对象层
-│   ├── __init__.py
-│   ├── base_page.py          # 页面基类
-│   ├── login_page.py         # 登录页面
-│   └── home_page.py          # 首页
-├── test_cases/               # 测试用例层
-│   ├── __init__.py
-│   ├── api/                  # API 测试
-│   │   ├── __init__.py
-│   │   ├── test_github_api.py         # GitHub API 功能测试
-│   │   ├── test_enterprise_features.py # 高级特性测试
-│   │   ├── test_stress_performance.py  # 压力性能测试
-│   │   └── test_boundary_and_invalid.py # 边界值和异常测试
-│   └── web/                  # Web UI 测试
-│       ├── __init__.py
-│       └── test_github_web.py         # GitHub Web 测试
-├── data/                     # 数据层（数据驱动）
-│   ├── api_test_data.yaml    # API 测试数据
-│   ├── web_test_data.yaml    # Web UI 测试数据
-│   ├── framework_test_data.yaml # 框架测试数据
-│   ├── boundary_test_data.yaml  # 边界值测试数据
-│   └── invalid_test_data.yaml   # 异常测试数据
-├── docs/                     # 文档目录
-│   ├── GitHub_API接口文档.md
-│   ├── 测试用例设计文档.md
-│   ├── 项目需求文档.md
-│   ├── 数据管理指南.md
-│   └── 插件系统指南.md
-├── .github/workflows/        # GitHub Actions CI/CD
-│   └── test.yml              # 自动化测试配置
-├── .gitignore               # Git 忽略配置
-├── conftest.py               # Pytest 全局配置
-├── pytest.ini                # Pytest 配置
-├── pyproject.toml            # 项目配置（black/isort/mypy/coverage）
-├── .pre-commit-config.yaml   # Git 钩子配置
-├── .env.example              # 环境变量示例
-├── requirements.txt          # 依赖列表
-├── LICENSE                   # MIT 许可证
-└── README.md                 # 项目说明
-
-# 以下目录为运行时自动生成，无需提交到 Git
-# .pytest_cache/    - pytest 缓存
-# allure-report/    - Allure HTML 报告
-# allure-results/   - Allure 原始结果
-# logs/             - 日志文件
-# reports/          - 测试报告
-# __pycache__/      - Python 缓存
-# .venv/            - 虚拟环境
-```
-
-## 核心功能
-
-### 1. 插件系统（"硬逻辑 + 软钩子"模式）
-
-参考 Pytest、Scrapy 等顶级框架的设计理念：
-
-| 插件类型 | 插件名称 | 功能 | 可禁用 |
-|----------|----------|------|--------|
-| **核心插件** | CircuitBreakerPlugin | 熔断器保护 | ❌ 不可禁用 |
-| **核心插件** | RateLimiterPlugin | 限流器控制 | ❌ 不可禁用 |
-| 普通插件 | LoggingPlugin | 日志记录 | ✅ 可禁用 |
-| 普通插件 | MetricsPlugin | 指标收集 | ✅ 可禁用 |
-| 普通插件 | CachePlugin | 请求缓存 | ✅ 可禁用 |
-
-**钩子接口：**
-
-```python
-class Plugin:
-    # 生命周期钩子
-    def on_load(self): pass
-    def on_enable(self): pass
-    def on_disable(self): pass
-    
-    # 请求钩子
-    def before_request(self, method, url, **kwargs): pass
-    def after_request(self, response, method, url, **kwargs): pass
-    def on_request_error(self, error, method, url, **kwargs): pass
-    
-    # 测试钩子
-    def before_test(self, test_name): pass
-    def after_test(self, test_name, result): pass
-    def on_test_failure(self, test_name, error): pass
-    def on_test_success(self, test_name): pass
-```
-
-### 2. 熔断器 (Circuit Breaker)
-
-三态模型实现，防止级联故障：
-
-```
-CLOSED（关闭）──失败次数达到阈值──► OPEN（开启）
-      ▲                              │
-      │                              │ 超时后
-      │                              ▼
-      └────成功──── HALF_OPEN（半开）
-```
-
-**配置参数：**
-- `failure_threshold = 5`：失败阈值
-- `timeout = 60`：熔断超时时间（秒）
-
-### 3. 限流器 (Rate Limiter)
-
-三种算法实现：
-
-| 算法 | 类 | 适用场景 |
-|------|-----|---------|
-| 滑动窗口 | `RateLimiter` | 精确控制请求频率 |
-| 令牌桶 | `TokenBucket` | 允许突发流量 |
-| 漏桶 | `LeakyBucket` | 平滑流量输出 |
-
-**默认配置：** 100 次请求 / 60 秒
-
-### 4. 安全模块
-
-- 日志敏感信息自动过滤
-- 数据脱敏工具（邮箱、手机号、密码等）
-- Fernet 加密（AES-128）
-
-### 5. 数据驱动测试
-
-测试数据与代码分离，支持 YAML 数据文件：
-
-```python
-from common.yaml_util import DataHelper
-
-# 加载 API 测试数据
-api_data = DataHelper.load_api_data()
-users = DataHelper.get_api_users()
-
-# 加载 Web 测试数据
-web_data = DataHelper.load_web_data()
-login_data = DataHelper.get_web_login_data()
-
-# 加载边界值数据
-boundary_data = DataHelper.load_boundary_data()
-
-# 加载异常测试数据
-invalid_data = DataHelper.load_invalid_data()
-```
-
-### 6. 数据生成器
-
-使用 Faker 生成随机测试数据：
-
-```python
-from common.data_generator import DataGenerator
-
-# 生成随机用户
-user = DataGenerator.generate_github_user()
-
-# 生成随机仓库
-repo = DataGenerator.generate_github_repository()
-
-# 生成随机 Issue
-issue = DataGenerator.generate_github_issue()
-
-# 设置随机种子（可重复）
-DataGenerator.set_seed(12345)
-```
+| 测试类型 | 覆盖范围 | 技术栈 | 数量 |
+|----------|----------|--------|:----:|
+| **API 测试** | 认证/商家/商品/购物车/订单/支付/评价/优惠券/收藏/健康检查 | Requests + Mock | **38 + 4 xpass** |
+| **UI 测试** | H5 消费者端 / 商家端 / 管理后台 | Selenium + Page Object | **19 + 1 xfail** |
+| **预期失败** | 已知后端缺陷 | xfail 标记 | **3** |
+| **意外通过** | 已修复的后端缺陷 | xpass 跟踪 | **4** |
 
 ## 快速开始
 
-### 环境要求
-
-- Python 3.8+
-- pip
-
-### 安装依赖
-
 ```bash
-# 克隆项目
-git clone https://github.com/CwtchToMe/pytest-api-framework.git
-cd pytest-api-framework
-
-# 创建虚拟环境
-python -m venv .venv
-source .venv/bin/activate  # Linux/Mac
-# 或
-.venv\Scripts\activate     # Windows
-
-# 安装依赖
+# 1. 安装依赖
 pip install -r requirements.txt
-```
 
-### 配置环境变量
-
-```bash
-# 复制示例配置
+# 2. 复制环境配置
 cp .env.example .env
 
-# 编辑 .env 文件
-GITHUB_API_URL=https://api.github.com
-GITHUB_TOKEN=your_github_token_here
-TEST_GITHUB_USER=octocat
+# 3. 运行 API 测试（Mock 模式，无需后端）
+python -m pytest test_cases/api/ -v
+
+# 4. 运行 API 测试（真实模式，需后端 :8080）
+USE_MOCK=false python -m pytest test_cases/api/ -v
+
+# 5. 运行 UI 测试（可见浏览器窗口）
+USE_MOCK=false ENV=dev python -m pytest test_cases/web/ -v
+
+# 6. 运行全部测试
+./run_tests.sh all real
 ```
 
-### 运行测试
+## 项目结构
+
+```
+pytest-api-framework/
+├── config/
+│   └── config.py                    # 多环境配置（dev/test/staging/prod）
+│
+├── api/                             # API 封装层（API Object 模式）
+│   ├── base_api.py                  # API 基类（@allure.step + 统一日志）
+│   └── takeout_api.py              # 10 个业务 API 类（Auth/Merchant/Product/Cart/Order/...）
+│
+├── common/                          # 基础工具层
+│   ├── base_requests.py            # HTTP 引擎（requests.Session + 重试 + 插件钩子）
+│   ├── mock_util.py                # Mock 模式切换（session 层 patch）
+│   ├── security.py                 # 敏感信息脱敏
+│   ├── test_helpers.py             # 统一登录（get_customer_token / get_merchant_token）
+│   ├── yaml_util.py                # YAML 测试数据加载
+│   ├── circuit_breaker.py          # 熔断器（三态状态机）
+│   ├── rate_limiter.py             # 限流器（滑动窗口）
+│   └── plugins/                    # 插件系统
+│       ├── core/                   # 熔断器、限流器（不可禁用）
+│       └── normal/                 # 日志、Allure 附件（可禁用）
+│
+├── page_objects/                   # 页面对象层（Page Object 模式）
+│   ├── base_page.py                # Selenium 基类（显式等待，零 time.sleep）
+│   ├── h5/                         # H5 端 — 7 个页面（登录/首页/商家详情/购物车/结算/订单/我的）
+│   ├── merchant_web/              # 商家端 — 3 个页面（登录/订单/店铺管理）
+│   └── admin_web/                 # 管理后台 — 4 个页面（登录/商家/订单/用户管理）
+│
+├── test_cases/
+│   ├── api/                        # API 测试（4 个模块，44 个测试）
+│   │   ├── test_auth_api.py              # 认证模块
+│   │   ├── test_merchant_product_api.py  # 商家+商品
+│   │   ├── test_order_flow_api.py        # 购物车→订单→支付→评价
+│   │   └── test_user_coupon_favorite_api.py  # 用户+优惠券+收藏
+│   │
+│   └── web/                        # UI 测试（3 个文件，20 个综合测试）
+│       ├── conftest.py             # WebDriver fixture（module 共享浏览器）
+│       ├── test_h5_ui.py           # H5 端 12 个测试（登录→首页→搜索→商家→加购→下单→...）
+│       ├── test_merchant_web_ui.py # 商家端 4 个测试（登录→订单→店铺→订单处理）
+│       └── test_admin_web_ui.py    # 管理后台 4 个测试（登录→商家→订单→用户）
+│
+├── conftest.py                     # 全局 pytest 配置（--mock/--env + 健康检查）
+├── pytest.ini                      # markers / 日志 / addopts
+├── pyproject.toml                  # 项目元数据与依赖
+├── requirements.txt                # pip 依赖锁
+├── .env.example                    # 环境配置模板
+├── .gitignore
+└── run_tests.sh                    # 批量运行脚本
+```
+
+## 运行指南
+
+### 环境准备
 
 ```bash
-# 运行所有测试（96 个测试用例）
-pytest
+# 安装依赖
+pip install -r requirements.txt
 
-# 只运行 API 测试
-pytest test_cases/api/ -v
-
-# 只运行 Web UI 测试
-pytest test_cases/web/ -v
-
-# 禁用普通插件（核心插件不可禁用）
-pytest --disable-plugins
-
-# 生成 Allure 报告
-pytest --alluredir=./allure-results
-allure serve allure-results
+# 设置 Redis 短信验证码（真实模式需要）
+redis-cli SET "sms:code:13800000003" "123456" EX 3600
+redis-cli SET "sms:code:13800000002" "123456" EX 3600
+redis-cli SET "sms:code:13800000001" "123456" EX 3600
 ```
 
-## 测试用例
-
-当前共 **96 个测试用例**，全部通过：
-
-### API 测试（77 个）
-
-| 模块 | 测试数量 | 覆盖内容 |
-|------|----------|----------|
-| 用户功能 | 6 | 用户信息、认证用户、仓库列表、无效用户 |
-| 仓库功能 | 2 | 仓库详情、异常处理 |
-| 搜索功能 | 2 | 仓库搜索、空结果处理 |
-| Issue 功能 | 4 | Issue 列表、创建、状态筛选 |
-| 频率限制 | 1 | API 频率限制状态 |
-| 错误响应 | 4 | HTTP 错误响应测试 |
-| 高级特性 | 21 | 熔断器、限流器、插件系统、安全模块、配置验证 |
-| 压力测试 | 6 | 高并发、持续压力、负载测试、性能基准 |
-| 边界值测试 | 4 | 用户名、星标数、Issue 标题、频率限制边界 |
-| 异常测试 | 27 | SQL 注入、XSS 攻击、无效邮箱、特殊字符、类型错误 |
-
-### Web UI 测试（19 个）
-
-| 模块 | 测试数量 | 覆盖内容 |
-|------|----------|----------|
-| 登录功能 | 4 | 登录成功、登录失败、表单验证、空用户名 |
-| 首页功能 | 4 | 页面加载、导航、搜索、仓库列表 |
-| 用户操作 | 5 | 个人中心、设置导航、用户资料、设置导航项 |
-| 仓库页面 | 2 | 创建仓库数据、页面元素定位 |
-| 通用元素 | 1 | 通用元素定位 |
-| 配置测试 | 2 | 超时配置、截图配置 |
-| 首页导航 | 1 | 首页导航元素定位 |
-
-## 数据文件使用情况
-
-所有 YAML 数据文件 100% 被测试使用：
-
-| 数据文件 | 数据节点数 | 使用率 |
-|----------|------------|--------|
-| api_test_data.yaml | 11 | 100% |
-| web_test_data.yaml | 14 | 100% |
-| framework_test_data.yaml | 13 | 100% |
-| boundary_test_data.yaml | 4 | 100% |
-| invalid_test_data.yaml | 6 | 100% |
-
-## 测试策略
-
-### Mock 测试策略
-
-由于 GitHub API 有频率限制，本项目采用 Mock 测试策略：
-
-| 限制类型 | 频率 | Mock 策略 |
-|----------|------|----------|
-| 未认证 | 60 次/小时 | 使用 Mock 模拟响应 |
-| 已认证 | 5000 次/小时 | 使用 Mock 模拟响应 |
-
-**Mock 模式控制：**
-
-项目支持通过环境变量控制 Mock 模式：
+### 运行命令
 
 ```bash
-# Mock 模式（默认）- 使用 Mock 数据
-USE_MOCK=true pytest
+# ---- API 测试 ----
 
-# 真实 API 模式 - 发送真实请求（需要配置 GITHUB_TOKEN）
-USE_MOCK=false pytest
+# Mock 模式（不需要后端）
+python -m pytest test_cases/api/ -v
+
+# 真实模式（需要后端 :8080）
+USE_MOCK=false python -m pytest test_cases/api/ -v
+
+# ---- UI 测试 ----
+
+# 无头模式（CI 环境）
+USE_MOCK=false python -m pytest test_cases/web/ -v
+
+# 可见浏览器模式（看测试过程）
+USE_MOCK=false ENV=dev python -m pytest test_cases/web/ -v
+
+# ---- 批量运行 ----
+./run_tests.sh api real       # API 真实模式
+./run_tests.sh ui real        # UI 真实模式（看得见浏览器）
+./run_tests.sh all mock       # 全量 Mock 模式
 ```
 
-**Mock 测试优势：**
-- 避免 GitHub API 频率限制
-- 测试结果稳定可重复
-- 测试速度快（96 个测试约 14 秒）
-- CI/CD 流程稳定可靠
+### 常用参数
+
+| 参数 | 说明 |
+|------|------|
+| `-v` | 显示每个测试名称和结果 |
+| `--tb=short` | 失败时短错误 |
+| `-k "login or order"` | 按名称过滤测试 |
+| `-m "smoke"` | 按 marker 过滤 |
+| `-p no:warnings` | 关闭告警噪音 |
+| `--alluredir=reports/allure-results` | 生成 Allure 报告数据 |
 
 ## CI/CD 集成
 
-项目配置了 GitHub Actions 自动化测试（`.github/workflows/test.yml`）：
+项目已集成 **GitHub Actions** 自动化 CI/CD 流水线，配置见 `.github/workflows/test.yml`。
 
-| 功能 | 说明 |
-|------|------|
-| **多版本测试** | Python 3.8, 3.9, 3.10, 3.11 |
-| **代码覆盖率** | pytest-cov 生成覆盖率报告 |
-| **Allure 报告** | 自动部署到 GitHub Pages |
-| **Codecov** | 上传覆盖率到 Codecov |
+### 触发方式
 
-**触发条件：**
-- Push 到 `main` 或 `develop` 分支
-- Pull Request 到 `main` 或 `develop` 分支
+| 触发方式 | API 测试 | UI 测试 | Allure 报告 | 适用场景 |
+|---------|:--------:|:-------:|:----------:|---------|
+| **Push / PR** (main/develop) | ✅ Mock 模式 | ❌ 不运行 | ✅ 生成 | 提交时快速验证 |
+| **每日定时** (06:00 UTC+8) | ✅ | ✅ 需外部服务 | ✅ 发布到 Pages | 全量回归 |
+| **手动 workflow_dispatch** | 按需选择 | 按需选择 | ✅ | 灵活组合 |
 
-**使用方式：**
-1. 将项目推送到 GitHub
-2. 在 GitHub 仓库中启用 Actions
-3. 配置 GitHub Pages（可选，用于 Allure 报告）
+### 分层测试策略
 
-## 代码质量工具
+- **API 测试**（`test_cases/api/`）：始终使用 **Mock 模式**（`USE_MOCK=true`），无需任何后端服务，CI 中 5 分钟内完成
+- **UI 测试**（`test_cases/web/`）：需要部署的前端服务和后端 API，仅在**定时构建**和**手动触发**时运行
+- **代码风格检查**：`black` + `isort` 自动校验代码格式
 
-项目配置了 pre-commit 钩子（`.pre-commit-config.yaml`），在提交代码前自动执行代码检查：
+### 流水线 Job 说明
 
-| 工具 | 功能 |
-|------|------|
-| **black** | Python 代码格式化 |
-| **isort** | import 语句排序 |
-| **flake8** | 代码风格检查 |
-| **mypy** | 静态类型检查 |
-| **check-yaml** | YAML 文件语法检查 |
-| **trailing-whitespace** | 删除行尾空白 |
-
-**使用方式：**
-
-```bash
-# 安装 pre-commit
-pip install pre-commit
-
-# 在项目中安装 git 钩子
-pre-commit install
-
-# 手动运行所有检查
-pre-commit run --all-files
+```yaml
+lint          # 代码风格检查（black + isort）
+api-tests     # API Mock 测试（pytest-xdist 并行）
+ui-tests      # UI 测试（Chrome Headless，需外部环境）
+allure-report # Allure 报告生成 → GitHub Pages 发布
+notify        # 失败通知（支持 Slack Webhook）
 ```
 
-## 文档说明
+### Allure 报告
 
-| 文档 | 说明 |
-|------|------|
-| [GitHub_API接口文档.md](docs/GitHub_API接口文档.md) | GitHub REST API 接口文档 |
-| [测试用例设计文档.md](docs/测试用例设计文档.md) | 测试范围、策略、用例清单 |
-| [项目需求文档.md](docs/项目需求文档.md) | 功能需求、非功能需求、验收标准 |
-| [数据管理指南.md](docs/数据管理指南.md) | 数据架构、使用场景、API 参考 |
-| [插件系统指南.md](docs/插件系统指南.md) | 插件架构、接口定义、使用示例 |
+测试通过后，Allure 报告自动部署到 GitHub Pages：
+`https://<你的用户名>.github.io/pytest-api-framework/allure-report/`
+
+也可在 Actions 运行页面下载 `allure-report` Artifact 本地查看。
+
+### 手动触发测试
+
+在 GitHub 仓库页面 → **Actions** → **TakeoutSystem CI/CD** → **Run workflow**，可选择：
+- **测试范围**：`api` / `ui` / `full`
+- **Mock 模式**：是否启用 Mock
+
+### 配置外部 UI 环境（可选）
+
+UI 测试需要部署的前端服务。在 GitHub 仓库 **Settings → Secrets and variables → Actions** 中配置：
+
+| Secret | 说明 | 默认值 |
+|--------|------|--------|
+| `H5_BASE_URL` | H5 前端地址 | `http://localhost:3001` |
+| `MERCHANT_BASE_URL` | 商家端地址 | `http://localhost:3002` |
+| `ADMIN_BASE_URL` | 管理后台地址 | `http://localhost:3003` |
+| `TAKEOUT_API_URL` | 后端 API 地址 | `http://localhost:8080` |
+| `SLACK_WEBHOOK` | Slack 通知（可选） | — |
+
+也可以使用 `docker-compose.ci.yml` 在本地或 CI 中拉起完整环境。
+
+## 架构设计
+
+### 分层架构
+
+```
+测试用例层 (test_cases/)
+    │
+    ├── 调用 API 封装层 (api/takeout_api.py)
+    │       └── 继承 BaseApi → common/base_requests.py (HTTP + 插件)
+    │
+    └── 调用页面对象层 (page_objects/*.py)
+            └── 继承 BasePage (Selenium + 显式等待)
+```
+
+### 复用机制
+
+| 层级 | 复用内容 | 省去的工作 |
+|------|----------|-----------|
+| **fixture** | `mobile_driver` / `desktop_driver`（scope=module） | 浏览器启动/配置/关闭全自动 |
+| **Page 继承** | `BasePage.click()` / `input_text()` / `wait_for_*()` / `is_visible()` | 显式等待、超时控制、异常处理 |
+| **API 继承** | `BaseApi.get()` / `post()` / `put()` / `delete()` | HTTP 会话、日志、allure 附件 |
+| **test_helpers** | `get_customer_token()` / `get_merchant1_token()` / `get_admin_token()` | Token 获取与缓存 |
+| **config** | `API_BASE_URL` / `TEST_SMS_CODE` / `H5_BASE_URL` / `ENV` | 环境差异统一管理 |
+| **YAML 数据** | `api_test_data.yaml` / `web_test_data.yaml` | 测试数据与代码分离 |
+
+### 高效等待策略
+
+所有页面操作使用 Selenium 显式等待（`WebDriverWait` + `expected_conditions`），**没有 `time.sleep`**：
+
+```python
+# 不用 time.sleep(1)
+self.wait.until(EC.element_to_be_clickable(locator)).click()
+
+# 不用 time.sleep(2)
+self.wait_for_url_not_contains("/login")
+
+# 不用 time.sleep(3)
+self.wait_for_text(self.MERCHANT_NAME, timeout=8)
+```
+
+## 测试账号
+
+| 角色 | 手机号 | 验证码 | 用途 |
+|------|--------|--------|------|
+| 普通用户 | 13800000003 | 123456 | API 认证、H5 UI |
+| 商家1（辣味馆） | 13800000002 | 123456 | 商家 API、商家端 UI |
+| 商家2（快乐汉堡） | 13800000004 | 123456 | 多商家场景 |
+| 平台管理员 | 13800000001 | 123456 | 管理后台 UI |
 
 ## 技术栈
 
-| 类别 | 技术 | 版本 |
-|------|------|------|
-| 测试框架 | pytest | 7.4 |
-| HTTP 请求 | requests | 2.31 |
-| Web 自动化 | selenium | 4.15 |
-| 测试报告 | allure-pytest | 2.13 |
-| 数据生成 | Faker | 20.1 |
-| 加密 | cryptography | 41.0 |
-| 配置管理 | python-dotenv | 1.0 |
-| 数据格式 | PyYAML | 6.0 |
+| 依赖 | 用途 | 关键能力 |
+|------|------|----------|
+| pytest 9.1 | 测试框架 | fixture / parametrize / xfail / marker |
+| requests | HTTP 客户端 | Session 复用、重试策略 |
+| selenium 4 | 浏览器自动化 | Page Object、CDP、显式等待 |
+| allure-pytest | 测试报告 | 步骤追踪、请求/响应附件 |
+| webdriver-manager | ChromeDriver 管理 | 自动下载匹配版本 |
+| PyYAML + Faker | 数据管理 | 数据驱动、随机生成 |
+| python-dotenv | 环境变量 | .env 文件加载 |
 
-## 许可证
+## 已知问题（xfail）
 
-[MIT License](LICENSE)
+| 测试 | 文件 | 问题描述 |
+|------|------|----------|
+| `test_add_dish_negative_price` | test_merchant_product_api | 后端未校验 `price<0` |
+| `test_claim_coupon` | test_user_coupon_favorite_api | 优惠券领取接口异常 |
+| `test_merchant_detail_browse` | test_h5_ui | Vue SPA token 重定向问题 |
