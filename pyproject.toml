@@ -23,6 +23,9 @@ dependencies = [
     "Faker>=18.0",
 ]
 
+[tool.isort]
+profile = "black"
+
 [project.optional-dependencies]
 dev = [
     "black",
