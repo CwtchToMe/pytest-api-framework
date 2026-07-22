@@ -213,6 +213,15 @@ jobs:
             exit 1
           fi
 
+      - name: Set test data in Redis
+        run: |
+          echo "设置测试账号验证码..."
+          docker exec ci-redis redis-cli SET 'sms:code:13800000001' '123456' EX 3600
+          docker exec ci-redis redis-cli SET 'sms:code:13800000002' '123456' EX 3600
+          docker exec ci-redis redis-cli SET 'sms:code:13800000003' '123456' EX 3600
+          docker exec ci-redis redis-cli SET 'sms:code:13800000004' '123456' EX 3600
+          docker exec ci-redis redis-cli KEYS 'sms:code:*'
+
       - name: Run API tests (Real mode)
         run: |
           python -m pytest test_cases/api/ \
@@ -335,6 +344,15 @@ jobs:
             curl -s -o /dev/null -w "%{http_code}" "$url" 2>/dev/null || echo "unreachable"
             echo ""
           done
+
+      - name: Set test data in Redis
+        run: |
+          echo "设置测试账号验证码..."
+          docker exec ci-redis redis-cli SET 'sms:code:13800000001' '123456' EX 3600
+          docker exec ci-redis redis-cli SET 'sms:code:13800000002' '123456' EX 3600
+          docker exec ci-redis redis-cli SET 'sms:code:13800000003' '123456' EX 3600
+          docker exec ci-redis redis-cli SET 'sms:code:13800000004' '123456' EX 3600
+          docker exec ci-redis redis-cli KEYS 'sms:code:*'
 
       - name: Run UI tests
         run: |

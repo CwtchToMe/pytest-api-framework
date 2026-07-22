@@ -37,6 +37,8 @@ services:
       retries: 10
       start_period: 10s
     tmpfs: /var/lib/mysql  # 容器销毁后数据自动清除
+    volumes:
+      - ./db:/docker-entrypoint-initdb.d  # 自动初始化表结构和测试数据
 
   redis:
     image: redis:7-alpine
