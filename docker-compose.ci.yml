@@ -21,7 +21,7 @@
 services:
   # ---- 基础设施 ----
   mysql:
-    image: mysql:8.0
+    image: mysql:8.4
     container_name: ci-mysql
     environment:
       MYSQL_ROOT_PASSWORD: takeout_root
@@ -51,7 +51,7 @@ services:
 
   # ---- 后端 API 服务 ----
   backend:
-    image: ghcr.io/cwtochtome/takeout-backend:latest
+    image: cwtchtome/takeout-backend:latest
     container_name: ci-backend
     depends_on:
       mysql:
@@ -63,13 +63,13 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/takeout?useSSL=false&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: takeout
       SPRING_DATASOURCE_PASSWORD: takeout_pass
-      SPRING_REDIS_HOST: redis
-      SPRING_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
       SERVER_PORT: 8080
     ports:
       - "8080:8080"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/api/health"]
       interval: 15s
       timeout: 5s
       retries: 10
@@ -77,13 +77,12 @@ services:
 
   # ---- 初始化测试数据 ----
   db-seed:
-    image: ghcr.io/cwtochtome/takeout-backend:latest
+    image: cwtchtome/takeout-backend:latest
     container_name: ci-db-seed
+    entrypoint: sh
     depends_on:
       backend:
         condition: service_healthy
-    environment:
-      SPRING_PROFILES_ACTIVE: ci
     command: >
       sh -c "
         # 设置测试用户验证码
@@ -96,7 +95,7 @@ services:
 
   # ---- 前端应用 ----
   h5-frontend:
-    image: ghcr.io/cwtochtome/takeout-h5:latest
+    image: cwtchtome/takeout-h5:latest
     container_name: ci-h5
     depends_on:
       backend:
@@ -104,10 +103,10 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: http://backend:8080
     ports:
-      - "3001:3001"
+      - "3001:80"
 
   merchant-frontend:
-    image: ghcr.io/cwtochtome/takeout-merchant:latest
+    image: cwtchtome/takeout-merchant:latest
     container_name: ci-merchant
     depends_on:
       backend:
@@ -115,10 +114,10 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: http://backend:8080
     ports:
-      - "3002:3002"
+      - "3002:80"
 
   admin-frontend:
-    image: ghcr.io/cwtochtome/takeout-admin:latest
+    image: cwtchtome/takeout-admin:latest
     container_name: ci-admin
     depends_on:
       backend:
@@ -126,4 +125,4 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: http://backend:8080
     ports:
-      - "3003:3003"
+      - "3003:80"

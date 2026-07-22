@@ -5,11 +5,10 @@
 #   1. Push → main   → API Mock 测试 + Lint（快速反馈，不依赖外部容器）
 #   2. Push → develop → API Mock 测试（快速反馈，不依赖外部服务）
 #   3. Pull Request    → API Mock 测试（快速反馈）
-#   4. 每日定时        → 全量测试（API 真实模式 + UI，需 ghcr.io 镜像）
+#   4. 每日定时        → 全量测试（API 真实模式 + UI，从 Docker Hub 拉取镜像）
 #   5. 手动触发        → 灵活选择测试范围和模式
 #
-# 注意：ghcr.io/cwtochtome/* 镜像当前存在 manifest 损坏（:latest 拉取失败），
-#       因此 push 触发跳过真实模式。修复镜像后恢复条件。
+# 镜像来源：Docker Hub（cwtchtome/takeout-*:latest），公网拉取无需登录。
 #
 # 环境变量（可选）：
 #   SLACK_WEBHOOK     - Slack 通知 Webhook（可选）
@@ -145,7 +144,7 @@ jobs:
   api-tests-real:
     name: API 测试 (真实模式)
     runs-on: ubuntu-latest
-    # 定时构建或手动触发且 mock_mode=false 时运行（注意：ghcr.io 镜像 manifest 损坏，push 不触发）
+    # 定时构建或手动触发且 mock_mode=false 时运行
     if: |
       github.event_name == 'schedule' ||
       (github.event_name == 'workflow_dispatch' &&
@@ -175,13 +174,6 @@ jobs:
           echo "API_TIMEOUT=60" >> .env
           echo "LOG_LEVEL=INFO" >> .env
 
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Debug Docker environment
         run: |
           echo "=== docker version ==="
@@ -190,8 +182,6 @@ jobs:
           docker compose version
           echo "=== compose config ==="
           docker compose -f docker-compose.ci.yml config --services
-          echo "=== try pull one image ==="
-          docker pull ghcr.io/cwtochtome/takeout-backend:latest 2>&1 || echo "PULL FAILED"
           echo "=== all images ==="
           docker images
 
@@ -259,7 +249,7 @@ jobs:
   ui-tests:
     name: UI 测试
     runs-on: ubuntu-latest
-    # 定时构建或手动触发且选择 ui/full 时运行（注意：ghcr.io 镜像 manifest 损坏，push 不触发）
+    # 定时构建或手动触发且选择 ui/full 时运行
     if: |
       github.event_name == 'schedule' ||
       (github.event_name == 'workflow_dispatch' &&
@@ -297,13 +287,6 @@ jobs:
           echo "ADMIN_BASE_URL=http://localhost:3003" >> .env
           echo "TAKEOUT_API_URL=http://localhost:8080" >> .env
 
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Debug Docker environment
         run: |
           echo "=== docker version ==="
@@ -312,8 +295,6 @@ jobs:
           docker compose version
           echo "=== compose config ==="
           docker compose -f docker-compose.ci.yml config --services
-          echo "=== try pull one image ==="
-          docker pull ghcr.io/cwtochtome/takeout-backend:latest 2>&1 || echo "PULL FAILED"
           echo "=== all images ==="
           docker images
 
