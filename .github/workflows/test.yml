@@ -188,10 +188,10 @@ jobs:
       - name: Start backend services with Docker Compose
         run: |
           echo "=== docker compose pull ==="
-          docker compose -f docker-compose.ci.yml pull mysql redis backend db-seed 2>&1; PULL_EXIT=$?
+          docker compose -f docker-compose.ci.yml pull mysql redis backend db-seed 2>&1 && PULL_EXIT=0 || PULL_EXIT=$?
           echo "PULL_EXIT=$PULL_EXIT"
           echo "=== docker compose up ==="
-          docker compose -f docker-compose.ci.yml up -d mysql redis backend db-seed 2>&1; UP_EXIT=$?
+          docker compose -f docker-compose.ci.yml up -d mysql redis backend db-seed 2>&1 && UP_EXIT=0 || UP_EXIT=$?
           echo "UP_EXIT=$UP_EXIT"
           if [ $UP_EXIT -ne 0 ]; then
             echo "❌ 容器启动失败，容器状态："
@@ -316,10 +316,10 @@ jobs:
       - name: Start all services with Docker Compose
         run: |
           echo "=== docker compose pull ==="
-          docker compose -f docker-compose.ci.yml pull 2>&1; PULL_EXIT=$?
+          docker compose -f docker-compose.ci.yml pull 2>&1 && PULL_EXIT=0 || PULL_EXIT=$?
           echo "PULL_EXIT=$PULL_EXIT"
           echo "=== docker compose up ==="
-          docker compose -f docker-compose.ci.yml up -d 2>&1; UP_EXIT=$?
+          docker compose -f docker-compose.ci.yml up -d 2>&1 && UP_EXIT=0 || UP_EXIT=$?
           echo "UP_EXIT=$UP_EXIT"
           if [ $UP_EXIT -ne 0 ]; then
             echo "❌ 容器启动失败，容器状态："
