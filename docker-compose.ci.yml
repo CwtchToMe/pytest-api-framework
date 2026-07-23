@@ -36,8 +36,8 @@ services:
       timeout: 3s
       retries: 10
       start_period: 10s
-    tmpfs: /var/lib/mysql  # 容器销毁后数据自动清除
     volumes:
+      - mysql-data:/var/lib/mysql
       - ./db:/docker-entrypoint-initdb.d  # 自动初始化表结构和测试数据
 
   redis:
@@ -128,3 +128,6 @@ services:
       NEXT_PUBLIC_API_URL: http://backend:8080
     ports:
       - "3003:80"
+
+volumes:
+  mysql-data:

@@ -29,7 +29,7 @@ on:
       test_scope:
         description: '测试范围'
         required: true
-        default: 'api'
+        default: 'full'
         type: choice
         options:
           - api        # 仅 API 测试（取决于 mock_mode 选择）
@@ -38,7 +38,7 @@ on:
       mock_mode:
         description: 'Mock 模式'
         required: true
-        default: 'true'
+        default: 'false'
         type: choice
         options:
           - 'true'     # Mock 模式（不依赖后端）
@@ -193,7 +193,13 @@ jobs:
           echo "=== docker compose up ==="
           docker compose -f docker-compose.ci.yml up -d mysql redis backend db-seed 2>&1; UP_EXIT=$?
           echo "UP_EXIT=$UP_EXIT"
-          if [ $UP_EXIT -ne 0 ]; then exit $UP_EXIT; fi
+          if [ $UP_EXIT -ne 0 ]; then
+            echo "❌ 容器启动失败，容器状态："
+            docker compose -f docker-compose.ci.yml ps
+            echo "--- 容器日志 ---"
+            docker compose -f docker-compose.ci.yml logs --tail=50
+            exit $UP_EXIT
+          fi
           echo "等待后端服务就绪..."
           READY=false
           for i in $(seq 1 30); do
@@ -315,7 +321,13 @@ jobs:
           echo "=== docker compose up ==="
           docker compose -f docker-compose.ci.yml up -d 2>&1; UP_EXIT=$?
           echo "UP_EXIT=$UP_EXIT"
-          if [ $UP_EXIT -ne 0 ]; then exit $UP_EXIT; fi
+          if [ $UP_EXIT -ne 0 ]; then
+            echo "❌ 容器启动失败，容器状态："
+            docker compose -f docker-compose.ci.yml ps
+            echo "--- 容器日志 ---"
+            docker compose -f docker-compose.ci.yml logs --tail=50
+            exit $UP_EXIT
+          fi
           echo "等待后端服务就绪..."
           READY=false
           for i in $(seq 1 30); do
